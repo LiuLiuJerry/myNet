@@ -1,0 +1,10 @@
+---- EPOCH 200 EVALUATION ----
+000/002
+eval mean loss: 0.043564
+eval accuracy: 0.982849
+eval avg class acc: 0.966435
+eval mIoU of horse:	 0.969465
+eval mean mIoU: 0.969465
+eval mean mIoU (all shapes): 0.969465
+Model saved in file: log/model.ckpt
+
