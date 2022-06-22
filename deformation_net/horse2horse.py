@@ -12,7 +12,8 @@ sys.path.append(   BASE_DIR + "/../pointnet_plusplus/tf_ops/3d_interpolation")
 sys.path.append(   BASE_DIR + "/../pointnet_plusplus/tf_ops/grouping")
 sys.path.append(   BASE_DIR + "/../pointnet_plusplus/tf_ops/sampling")
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 import numpy as np # Nummeric python
 import tf_util
 from pointnet_util import pointnet_sa_module, pointnet_fp_module, pointnet_deconv
@@ -40,13 +41,15 @@ def create_model( FLAGS ):
     ####################  Hyper-parameters   ####################
     ##############################################################
     # 损失函数优化器的minimize()中global_step=global_steps能够提供global_step自动加一的操作
-    global_step = tf.train.get_or_create_global_step() 
+    # global_step = tf.train.get_or_create_global_step()
+    global_step = tf.compat.v1.train.get_or_create_global_step()
     # 指数衰减学习率 首先使用较大学习率(目的：为快速得到一个比较优的解), 然后通过迭代逐步减小学习率(目的：为使模型在训练后期更加稳定)
  
-    learning_rate_G = tf.train.exponential_decay( 
+    # learning_rate_G = tf.train.exponential_decay(
+    learning_rate_G = tf.compat.v1.train.exponential_decay(
         FLAGS.LEARNING_RATE_G, 
-        global_step   * FLAGS.batch_size,  # global_var indicating the number of steps
-        FLAGS.example_num  * FLAGS.decayEpoch,  # step size
+        global_step * FLAGS.batch_size,  # global_var indicating the number of steps
+        FLAGS.example_num * FLAGS.decayEpoch,  # step size
         0.5,  # decay rate
         staircase=True
     )    
@@ -67,10 +70,15 @@ def create_model( FLAGS ):
     ##############################################################
     # placeholder 与 feed_dict={} 是绑定在一起出现的 
     # Tensorflow 如果想要从外部传入data, 那就需要用到 tf.placeholder(), 然后以这种形式传输数据 sess.run(***, feed_dict={input: **})
-    pointSet_in_ph = tf.placeholder( tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_out, 3) )
-    skeleton_in_ph = tf.placeholder( tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_in, 3) )
-    pointSet_out_ph = tf.placeholder( tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_out, 3) )
-    is_training_ph = tf.placeholder( tf.bool, shape=() )
+    # pointSet_in_ph = tf.placeholder( tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_out, 3) )
+    # skeleton_in_ph = tf.placeholder( tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_in, 3) )
+    # pointSet_out_ph = tf.placeholder( tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_out, 3) )
+    # is_training_ph = tf.placeholder( tf.bool, shape=() )
+    # tf 1.14.0
+    pointSet_in_ph = tf.compat.v1.placeholder(tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_out, 3))
+    skeleton_in_ph = tf.compat.v1.placeholder( tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_in, 3) )
+    pointSet_out_ph = tf.compat.v1.placeholder( tf.float32, shape=(FLAGS.batch_size, FLAGS.point_num_out, 3) )
+    is_training_ph = tf.compat.v1.placeholder( tf.bool, shape=() )
 
     ################## define my own netwoek #####################
     ske_features = encoder(skeleton_in_ph, FLAGS, is_training_ph, bn_decay)

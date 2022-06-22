@@ -1,5 +1,4 @@
 #coding:utf-8
-import tensorflow as tf
 import numpy as np
 import sys
 import os
@@ -12,6 +11,16 @@ sys.path.append(   BASE_DIR + "/../")
 sys.path.append(   BASE_DIR + "/../pointnet_plusplus")
 import horse2horse
 import ioUtil
+import logging
+import os
+from tensorflow.python.client import device_lib
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
+print(tf.test.is_gpu_available())
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+print(device_lib.list_local_devices())
+
 
 # DEFAULT SETTINGS
 parser = argparse.ArgumentParser()
@@ -88,7 +97,7 @@ for k, v in FLAGS._get_kwargs():
 # define train function
 def train():
     with tf.Graph().as_default():
-        with tf.device('/gpu:'+str(FLAGS.gpu)):
+        with tf.device('/device:GPU:0'):
             model = horse2horse.create_model(FLAGS)
         
         ########### init ans configure #########################
@@ -96,7 +105,7 @@ def train():
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         config.allow_soft_placement = True
-        #config.gpu_options.per_process_gpu_memory_fraction = 0.8
+        config.gpu_options.per_process_gpu_memory_fraction = 0.8
 
         sess = tf.Session(config=config)
         ### run了 所有global Variable 的 assign op

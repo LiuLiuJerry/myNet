@@ -3,7 +3,8 @@ import sys
 import numpy as np
 import h5py
 import collections
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
@@ -17,26 +18,43 @@ def arrange_datas(examples):
     npts = examples.pointSet_out.shape[1]
     ############## train examples #########################
     skeleton_in = examples.skeleton_in
-    pointSet_out = examples.pointSet_out # [n, npts, 3]
+    pointSet_out = examples.pointSet_out  # [n, npts, 3]
     names = examples.names
     EXAMPLE_NUM = examples.skeleton_in.shape[0]
 
+    # Original code
+    # sess = tf.Session()
+    # name1 = sess.run(tf.tile(names, [EXAMPLE_NUM]))
+    # name2 = tf.expand_dims(names, 1)
+    # name2 = sess.run(tf.reshape(tf.tile(name2, [1, EXAMPLE_NUM]), [EXAMPLE_NUM*EXAMPLE_NUM]))
+    #
+    # newnames = []
+    # for i in range(EXAMPLE_NUM * EXAMPLE_NUM):
+    #     # print(name1[i][0:-4] + '_'+name2[i])
+    #     newnames.append(name1[i][0:-4] + '_' + name2[i])
+    #
+    # pointSet_in = pointSet_out
+    # pointSet_in = sess.run(tf.tile(pointSet_in, [EXAMPLE_NUM, 1, 1]))  # ABCDABCDABCD
+    #
+    # skeleton_in = sess.run(
+    #     tf.reshape(tf.tile(skeleton_in, [1, EXAMPLE_NUM, 1]), [EXAMPLE_NUM * EXAMPLE_NUM, skepts, 3]))
+    # ps_out = tf.tile(pointSet_out, [1, EXAMPLE_NUM, 1])
+    # pointSet_out = sess.run(tf.reshape(ps_out, [EXAMPLE_NUM * EXAMPLE_NUM, npts, 3]))  # AAABBBCCCDDD
+    # End
+
     sess = tf.Session()
-    name1 = sess.run(tf.tile(names, [EXAMPLE_NUM]))
-    name2 = tf.expand_dims(names, 1)
-    name2 = sess.run(tf.reshape(tf.tile(name2, [1, EXAMPLE_NUM]), [EXAMPLE_NUM*EXAMPLE_NUM]))
 
     newnames = []
-    for i in range(EXAMPLE_NUM*EXAMPLE_NUM):
+    for i in range(EXAMPLE_NUM):
         #print(name1[i][0:-4] + '_'+name2[i])
-        newnames.append(name1[i][0:-4] + '_'+name2[i])
+        newnames.append(names[0][0:-4] + '_'+names[i])
 
-    pointSet_in = pointSet_out
+    pointSet_in = np.reshape(pointSet_out[0], [1, -1, 3])
     pointSet_in = sess.run(tf.tile(pointSet_in, [EXAMPLE_NUM, 1, 1]))# ABCDABCDABCD
 
-    skeleton_in = sess.run(tf.reshape(tf.tile(skeleton_in, [1, EXAMPLE_NUM, 1]), [EXAMPLE_NUM*EXAMPLE_NUM, skepts, 3]))
-    ps_out = tf.tile(pointSet_out, [1, EXAMPLE_NUM, 1])
-    pointSet_out = sess.run(tf.reshape(ps_out, [EXAMPLE_NUM*EXAMPLE_NUM, npts, 3]) )#AAABBBCCCDDD
+    skeleton_in = sess.run(tf.reshape(tf.tile(skeleton_in, [1, 1, 1]), [EXAMPLE_NUM, skepts, 3]))
+    ps_out = tf.tile(pointSet_out, [1, 1, 1])
+    pointSet_out = sess.run(tf.reshape(ps_out, [EXAMPLE_NUM, npts, 3]) )#AAABBBCCCDDD
 
     print('skeleton_in', skeleton_in.shape)
     print('pointSet_in', pointSet_in.shape)
@@ -74,13 +92,14 @@ def shuffle_examples( data ):
 
 
 def load_examples(h5_filename,  fieldname_modelname ):
-    f = h5py.File(h5_filename)
+    f = h5py.File(h5_filename, 'r')
     # to be updated 
     fieldname_in = 'skeleton'
     fieldname_out = 'surface'
     skeleton_in = f[fieldname_in][:]
     pointSet_out = f[fieldname_out][:]
-    names = f[fieldname_modelname][:]
+    names_byte = f[fieldname_modelname][:]
+    names = np.array([x.decode() for x in names_byte])
     print('size of skeleton_in : ', skeleton_in.size)
     print('size of pointSet_out : ', pointSet_out.size)
     return Examples(
